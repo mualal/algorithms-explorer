@@ -70,13 +70,23 @@ class ConvergenceToPhrase:
         return best_parent
 
 
-def main(
+class TestConvergenceToPhrase:
+
+    # run with (pytest path to file) in terminal
+    def test_get_the_best(self):
+        symbols = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ !,.?'
+        desired_phrase = 'New phrase'
+        conv_to_phrase = ConvergenceToPhrase(available_symbols=symbols, desired_output=desired_phrase)
+        assert conv_to_phrase.get_the_best() == desired_phrase
+
+
+def main_for_convergence_to_phrase(
     symbols = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ !,.?',
-    disired_phrase = 'Genetic algorithms are very useful!',
+    desired_phrase = 'Genetic algorithms are very useful!',
 ) -> None:
-    conv_to_phrase = ConvergenceToPhrase(available_symbols=symbols, desired_output=disired_phrase)
+    conv_to_phrase = ConvergenceToPhrase(available_symbols=symbols, desired_output=desired_phrase)
     print(conv_to_phrase.get_the_best())
 
 
 if __name__ == '__main__':
-    main()
+    main_for_convergence_to_phrase()
