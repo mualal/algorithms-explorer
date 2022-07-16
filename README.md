@@ -1,0 +1,1 @@
+Implementation of some basic algorithms for educational purposes
