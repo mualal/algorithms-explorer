@@ -105,6 +105,9 @@ class Chromosome:
     ) -> None:
         self.genes = genes
         self.fitness = fitness
+    
+    def __str__(self):
+        return f'{self.genes}'
 
 
 class GeneticMachinery:
@@ -115,11 +118,13 @@ class GeneticMachinery:
         get_fitness,
         genome_length: int,
         optimal_fitness,
+        printing,
     ) -> None:
         self.available_genes_set = available_genes_set
         self.get_fitness = get_fitness
         self.genome_length = genome_length
         self.optimal_fitness = optimal_fitness
+        self.printing = printing
     
     def _generate_parent(
         self,
@@ -144,14 +149,6 @@ class GeneticMachinery:
         fitness = self.get_fitness(child_genes)
         return Chromosome(genes=child_genes, fitness=fitness)
     
-    def _print_current_generation(
-        self,
-        current_generation: Chromosome,
-        start_time: datetime,
-    ) -> None:
-        time_diff = datetime.now() - start_time
-        print(f'{current_generation.genes}\t{current_generation.fitness}\t{time_diff}')
-    
     def get_the_best(
         self,
     ) -> Chromosome:
@@ -163,24 +160,57 @@ class GeneticMachinery:
             child = self._mutate(best_parent)
             if best_parent.fitness > child.fitness:
                 continue
-            self._print_current_generation(current_generation=child, start_time=start_time)
+            self.printing(current_generation=child, start_time=start_time)
             best_parent = child
-            if child.fitness == self.optimal_fitness:
-                break
-        return best_parent
-
+            if not self.optimal_fitness > child.fitness:
+                return best_parent
+        
 
 # 2 - list of sorted numbers
 
 
+class FitnessForListOfSortedNumbers:
+    numbers_in_correct_order_count = None
+    total_gap = None
+
+    def __init__(self, numbers_in_correct_order_count, total_gap):
+        self.numbers_in_correct_order_count = numbers_in_correct_order_count
+        self.total_gap = total_gap
+    
+    def __gt__(
+        self,
+        other
+    ):
+        if self.numbers_in_correct_order_count != other.numbers_in_correct_order_count:
+            return self.numbers_in_correct_order_count > other.numbers_in_correct_order_count
+        return self.total_gap < other.total_gap
+    
+    def __str__(self):
+        return f'{self.numbers_in_correct_order_count} in correct order, {self.total_gap} total gap'
+
+
 def get_fitness_for_list_of_sorted_numbers(
     genes
-):
+) -> FitnessForListOfSortedNumbers:
     fitness = 1
+    gap = 0
     for i in range(1, len(genes)):
         if genes[i] > genes[i-1]:
             fitness += 1
-    return fitness
+        else:
+            gap += genes[i - 1] - genes[i]
+    return FitnessForListOfSortedNumbers(
+        numbers_in_correct_order_count=fitness,
+        total_gap=gap
+    )
+
+
+def printing_for_list_of_sorted_numbers(
+    current_generation: Chromosome,
+    start_time: datetime,
+) -> None:
+    time_diff = datetime.now() - start_time
+    print(f'{current_generation.genes}\t{current_generation.fitness}\t{time_diff}')
 
 
 def main_for_list_of_sorted_numbers(
@@ -191,7 +221,8 @@ def main_for_list_of_sorted_numbers(
         available_genes_set=[i for i in range(set_size)],
         get_fitness=get_fitness_for_list_of_sorted_numbers,
         genome_length=list_size,
-        optimal_fitness=list_size,
+        optimal_fitness=FitnessForListOfSortedNumbers(list_size, 0),
+        printing=printing_for_list_of_sorted_numbers
     )
     print(list_of_sorted_numbers.get_the_best())
 
@@ -221,6 +252,19 @@ class Board:
             print(' '.join(self.board[i]))
 
 
+class FitnessForQueensPuzzle:
+    total = None
+
+    def __init__(self, total):
+        self.total = total
+    
+    def __gt__(self, other):
+        return self.total < other.total
+    
+    def __str__(self):
+        return f'{self.total}'
+
+
 def get_fitness_for_8_queens_puzzle(
     genes,
     edge_size=8
@@ -241,7 +285,18 @@ def get_fitness_for_8_queens_puzzle(
     total = edge_size - len(rows_with_queens) + edge_size - len(cols_with_queens) + \
         edge_size - len(north_east_diagonals_with_queens) + edge_size - len(south_east_diagonals_with_queens)
     
-    return total
+    return FitnessForQueensPuzzle(total)
+
+
+def printing_for_8_queens_puzzle(
+    current_generation: Chromosome,
+    start_time: datetime,
+    size=8,
+) -> None:
+    time_diff = datetime.now() - start_time
+    board = Board(current_generation.genes, size)
+    board.print()
+    print(f'{current_generation.genes}\t - {current_generation.fitness}\t{time_diff}')
 
 
 def main_for_8_queens_puzzle(
@@ -252,12 +307,13 @@ def main_for_8_queens_puzzle(
         available_genes_set=[i for i in range(set_size)],
         get_fitness=get_fitness_for_8_queens_puzzle,
         genome_length=list_size,
-        optimal_fitness=list_size,
+        optimal_fitness=FitnessForQueensPuzzle(0),
+        printing=printing_for_8_queens_puzzle
     )
     print(list_of_sorted_numbers.get_the_best())
 
 
 if __name__ == '__main__':
     # main_for_convergence_to_phrase()
-    main_for_list_of_sorted_numbers()
-    # main_for_8_queens_puzzle()
+    # main_for_list_of_sorted_numbers()
+    main_for_8_queens_puzzle()
