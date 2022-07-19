@@ -3,6 +3,7 @@ import random
 import csv
 import os
 from pathlib import Path
+import numpy as np
 
 
 # 1 - random string to target string
@@ -29,7 +30,7 @@ class ConvergenceToPhrase:
             # genome.extend(random.sample(gene_set, sample_size))
             genome.append(random.choice(self.gene_set))
         return ''.join(genome)
-    
+
     def _get_fitness(
         self,
         guess: str,
@@ -45,7 +46,7 @@ class ConvergenceToPhrase:
         new_gene, alternate = random.sample(self.gene_set, 2)
         child_genome[index] = alternate if new_gene == child_genome[index] else new_gene
         return ''.join(child_genome)
-    
+
     def _print_current_generation(
         self,
         current_guess: str,
@@ -108,7 +109,7 @@ class Chromosome:
     ) -> None:
         self.genome = genome
         self.fitness = fitness
-    
+
     def __str__(self):
         return f' Genome: {self.genome}.\n Fitness: {self.fitness}.'
 
@@ -128,7 +129,7 @@ class GeneticMachinery:
         self.genome_length = genome_length
         self.optimal_fitness = optimal_fitness
         self.printing = printing
-    
+
     def _generate_parent(
         self,
     ) -> Chromosome:
@@ -151,7 +152,7 @@ class GeneticMachinery:
         child_genome[index] = alternate if new_gene == child_genome[index] else new_gene
         fitness = self.get_fitness(child_genome)
         return Chromosome(genome=child_genome, fitness=fitness)
-    
+
     def get_the_best(
         self,
     ) -> Chromosome:
@@ -167,7 +168,7 @@ class GeneticMachinery:
             best_parent = child
             if not self.optimal_fitness > child.fitness:
                 return best_parent
-        
+
 
 # 2 - list of sorted numbers
 
@@ -179,7 +180,7 @@ class FitnessForListOfSortedNumbers:
     def __init__(self, numbers_in_correct_order_count, total_gap):
         self.numbers_in_correct_order_count = numbers_in_correct_order_count
         self.total_gap = total_gap
-    
+
     def __gt__(
         self,
         other
@@ -187,7 +188,7 @@ class FitnessForListOfSortedNumbers:
         if self.numbers_in_correct_order_count != other.numbers_in_correct_order_count:
             return self.numbers_in_correct_order_count > other.numbers_in_correct_order_count
         return self.total_gap < other.total_gap
-    
+
     def __str__(self):
         return f'{self.numbers_in_correct_order_count} in correct order, {self.total_gap} total gap'
 
@@ -246,7 +247,7 @@ class Board:
             column = genome[index + 1]
             board[column][row] = '1'
         self.board = board
-    
+
     def get(self, row, column):
         return self.board[column][row]
 
@@ -260,10 +261,10 @@ class FitnessForQueensPuzzle:
 
     def __init__(self, total):
         self.total = total
-    
+
     def __gt__(self, other):
         return self.total < other.total
-    
+
     def __str__(self):
         return f'{self.total}'
 
@@ -284,10 +285,10 @@ def get_fitness_for_queens_puzzle(
                 cols_with_queens.add(col)
                 north_east_diagonals_with_queens.add(row + col)
                 south_east_diagonals_with_queens.add(edge_size - 1 - row + col)
-    
+
     total = edge_size - len(rows_with_queens) + edge_size - len(cols_with_queens) + \
         edge_size - len(north_east_diagonals_with_queens) + edge_size - len(south_east_diagonals_with_queens)
-    
+
     return FitnessForQueensPuzzle(total)
 
 
@@ -345,23 +346,23 @@ class GraphColoringRule:
             node, adjacent = adjacent, node
         self.node = node
         self.adjacent = adjacent
-    
+
     def __eq__(
         self,
         other,
     ) -> bool:
         return self.node == other.node and self.adjacent == other.adjacent
-    
+
     def __hash__(
         self
     ):
         return hash(self.node) * 397 ^ hash(self.adjacent)
-    
+
     def __str__(
         self
     ) -> str:
         return self.node + '<->' + self.adjacent
-    
+
     def __repr__(
         self
     ) -> str:
@@ -394,7 +395,7 @@ def build_graph_coloring_rules(
                 rules_added[rule] += 1
             else:
                 rules_added[rule] = 1
-    
+
     for k, v in rules_added.items():
         if v != 2:
             print(f'Check dataset. Rule {k} is not bidirectional')
@@ -448,8 +449,98 @@ def main_for_graph_coloring_problem(
     print(graph_coloring_genetic_machinery.get_the_best())
 
 
+# 5 - card problem
+
+
+class FitnessForCardProblem:
+    group1_sum = None
+    group2_product = None
+    total_diff = None
+    duplicate_count = None
+
+    def __init__(
+        self,
+        group1_sum: int,
+        group2_product: int,
+        duplicate_count: int
+    ) -> None:
+        self.group1_sum = group1_sum
+        self.group2_product = group2_product
+        self.total_diff = abs(36 - group1_sum) + abs(360 - group2_product)
+        self.duplicate_count = duplicate_count
+
+    def __gt__(
+        self,
+        other
+    ) -> bool:
+        if self.duplicate_count != other.duplicate_count:
+            return self.duplicate_count < other.duplicate_count
+        return self.total_diff < other.total_diff
+
+    def __str__(
+        self
+    ) -> str:
+        return f'(sum: {self.group1_sum}; prod: {self.group2_product}; dups: {self.duplicate_count})'
+
+
+def get_fitness_for_card_problem(
+    genome: list
+) -> FitnessForCardProblem:
+    group1_sum = sum(genome[0:5])
+    group2_product = np.prod(genome[5:10])
+    duplicate_count = len(genome) - len(set(genome))
+    return FitnessForCardProblem(
+        group1_sum=group1_sum,
+        group2_product=group2_product,
+        duplicate_count=duplicate_count
+    )
+
+
+def printing_for_card_problem(
+    current_generation: Chromosome,
+    start_time: datetime,
+) -> None:
+    time_diff = datetime.now() - start_time
+    print(','.join([str(x) for x in current_generation.genome[0:5]]) + ' - ' +
+          ','.join([str(x) for x in current_generation.genome[5:10]]) +
+          f'\t{current_generation.fitness}\t{time_diff}')
+
+
+class GeneticMachineryForCardProblem(GeneticMachinery):
+
+    def _mutate(
+        self,
+        parent: Chromosome,
+    ) -> Chromosome:
+        child_genome = parent.genome[:]
+        if len(self.available_genes_set) == len(set(child_genome)):
+            count = random.randint(1, 4)
+            while count > 0:
+                count -= 1
+                index_a, index_b = random.sample(range(self.genome_length), 2)
+                child_genome[index_a], child_genome[index_b] = child_genome[index_b], child_genome[index_a]
+        else:
+            index_a = random.randrange(0, self.genome_length)
+            index_b = random.randrange(0, len(self.available_genes_set))
+            child_genome[index_a] = self.available_genes_set[index_b]
+        fitness = self.get_fitness(child_genome)
+        return Chromosome(genome=child_genome, fitness=fitness)
+
+
+def main_for_card_problem():
+    card_problem_genetic_machinery = GeneticMachineryForCardProblem(
+        available_genes_set=[i + 1 for i in range(10)],
+        get_fitness=get_fitness_for_card_problem,
+        genome_length=10,
+        optimal_fitness=FitnessForCardProblem(36, 360, 0),
+        printing=printing_for_card_problem
+    )
+    print(card_problem_genetic_machinery.get_the_best())
+
+
 if __name__ == '__main__':
     # main_for_convergence_to_phrase()
     # main_for_list_of_sorted_numbers()
     # main_for_queens_puzzle()
-    main_for_graph_coloring_problem()
+    # main_for_graph_coloring_problem()
+    main_for_card_problem()
