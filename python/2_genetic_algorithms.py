@@ -234,7 +234,7 @@ def main_for_list_of_sorted_numbers(
 # 3 - queens puzzle
 
 
-class Board:
+class BoardForQueens:
 
     def __init__(
         self,
@@ -273,7 +273,7 @@ def get_fitness_for_queens_puzzle(
     genome: list,
     edge_size: int
 ):
-    board = Board(genome=genome, edge_size=edge_size)
+    board = BoardForQueens(genome=genome, edge_size=edge_size)
     rows_with_queens = set()
     cols_with_queens = set()
     north_east_diagonals_with_queens = set()
@@ -298,7 +298,7 @@ def printing_for_queens_puzzle(
     edge_size: int,
 ) -> None:
     time_diff = datetime.now() - start_time
-    board = Board(current_generation.genome, edge_size)
+    board = BoardForQueens(current_generation.genome, edge_size)
     board.print()
     print(f'{current_generation.genome}\t - {current_generation.fitness}\t{time_diff}')
 
@@ -538,9 +538,163 @@ def main_for_card_problem():
     print(card_problem_genetic_machinery.get_the_best())
 
 
+# 6 - knights problem
+
+
+class PositionForKnights:
+    x = None
+    y = None
+
+    def __init__(
+        self,
+        x,
+        y
+    ):
+        self.x = x
+        self.y = y
+    
+    def __eq__(
+        self,
+        other
+    ) -> bool:
+        return self.x == other.x and self.y == other.y
+    
+    def __hash__(
+        self
+    ):
+        return self.x * 1000 + self.y
+    
+    def __str__(
+        self
+    ) -> str:
+        return f'({self.x}, {self.y})'
+    
+    def __repr__(
+        self
+    ) -> str:
+        return str(self)
+
+
+def get_attacks_for_knights(
+    location: PositionForKnights,
+    board_width: int,
+    board_height: int
+) -> list:
+    return [i for i in set(PositionForKnights(x + location.x, y + location.y)
+                           for x in [-2, -1, 1, 2] if 0 <= x + location.x < board_width
+                           for y in [-2, -1, 1, 2] if 0 <= y + location.y < board_height
+                           and abs(y) != abs(x))]
+
+
+class BoardForKnights:
+
+    def __init__(
+        self,
+        positions,
+        width,
+        height
+    ) -> None:
+        board = [['0'] * width for _ in range(height)]
+
+        for index, _ in enumerate(positions):
+            knight_position = positions[index]
+            board[knight_position.y][knight_position.x] = '1'
+        self.board = board
+        self.width = width
+        self.height = height
+    
+    def print(self):
+        for i in range(self.height):
+            print(' '.join(self.board[i]))
+
+
+def get_fitness_for_knights_problem(
+    genome,
+    board_width,
+    board_height
+) -> int:
+    attacked = set(pos for kn in genome for pos in get_attacks_for_knights(kn, board_width, board_height))
+    return len(attacked)
+
+
+def printing_for_knights_problem(
+    current_generation: Chromosome,
+    start_time: datetime,
+    board_width,
+    board_height
+) -> None:
+    time_diff = datetime.now() - start_time
+    board = BoardForKnights(current_generation.genome, board_width, board_height)
+    board.print()
+    print(f'{current_generation.fitness}\t{time_diff}')
+
+
+class GeneticMachineryForKnightsProblem(GeneticMachinery):
+
+    def __init__(
+        self,
+        available_genes_set: list,
+        get_fitness,
+        genome_length: int,
+        optimal_fitness,
+        printing,
+        board_width,
+        board_height
+    ):
+        super().__init__(
+            available_genes_set,
+            get_fitness,
+            genome_length,
+            optimal_fitness,
+            printing
+        )
+        self.board_width = board_width
+        self.board_height = board_height
+
+    def _generate_parent(
+        self,
+    ) -> Chromosome:
+        genome = [PositionForKnights(
+            random.randrange(0, self.board_width),
+            random.randrange(0, self.board_height),
+        ) for _ in range(14)]
+        return Chromosome(genome=genome, fitness=self.get_fitness(genome))
+    
+    def _mutate(
+        self,
+        parent: Chromosome,
+    ) -> Chromosome:
+        index = random.randrange(0, len(parent.genome))
+        child_genome = parent.genome[:]
+        child_genome[index] = PositionForKnights(
+            random.randrange(0, self.board_width),
+            random.randrange(0, self.board_height),
+        )
+        return Chromosome(genome=child_genome, fitness=self.get_fitness(child_genome))
+
+
+def main_for_knights_problem():
+    knights_problem_genetic_machinery = GeneticMachineryForKnightsProblem(
+        available_genes_set=None,
+        get_fitness=lambda genome: get_fitness_for_knights_problem(genome=genome, board_width=8, board_height=8),
+        genome_length=None,
+        optimal_fitness=8*8,
+        printing=lambda current_generation, start_time: printing_for_knights_problem(
+            current_generation=current_generation,
+            start_time=start_time,
+            board_width=8,
+            board_height=8,
+        ),
+        board_width=8,
+        board_height=8,
+    )
+    print(knights_problem_genetic_machinery.get_the_best())
+
+
 if __name__ == '__main__':
     # main_for_convergence_to_phrase()
     # main_for_list_of_sorted_numbers()
     # main_for_queens_puzzle()
     # main_for_graph_coloring_problem()
-    main_for_card_problem()
+    # main_for_card_problem()
+    main_for_knights_problem()
