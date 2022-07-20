@@ -657,7 +657,7 @@ class GeneticMachineryForKnightsProblem(GeneticMachinery):
         genome = [PositionForKnights(
             random.randrange(0, self.board_width),
             random.randrange(0, self.board_height),
-        ) for _ in range(14)]
+        ) for _ in range(self.genome_length)]
         return Chromosome(genome=genome, fitness=self.get_fitness(genome))
     
     def _mutate(
@@ -673,22 +673,142 @@ class GeneticMachineryForKnightsProblem(GeneticMachinery):
         return Chromosome(genome=child_genome, fitness=self.get_fitness(child_genome))
 
 
-def main_for_knights_problem():
+def main_for_knights_problem(
+    board_width = 10,
+    board_height = 10
+):
     knights_problem_genetic_machinery = GeneticMachineryForKnightsProblem(
         available_genes_set=None,
-        get_fitness=lambda genome: get_fitness_for_knights_problem(genome=genome, board_width=8, board_height=8),
-        genome_length=None,
-        optimal_fitness=8*8,
+        get_fitness=lambda genome: get_fitness_for_knights_problem(
+            genome=genome,
+            board_width=board_width,
+            board_height=board_height
+        ),
+        genome_length=22,
+        optimal_fitness=board_width*board_height,
         printing=lambda current_generation, start_time: printing_for_knights_problem(
             current_generation=current_generation,
             start_time=start_time,
-            board_width=8,
-            board_height=8,
+            board_width=board_width,
+            board_height=board_height,
         ),
-        board_width=8,
-        board_height=8,
+        board_width=board_width,
+        board_height=board_height,
     )
     print(knights_problem_genetic_machinery.get_the_best())
+
+
+# 7 - magic squares
+
+
+class FitnessForMagicSquares:
+    sum_of_diff = None
+
+    def __init__(self, sum_of_diff):
+        self.sum_of_diff = sum_of_diff
+
+    def __gt__(self, other):
+        return self.sum_of_diff < other.sum_of_diff
+
+    def __str__(self):
+        return f'{self.sum_of_diff}'
+
+
+def get_sums_for_magic_squares(
+    genome: list,
+    edge_size: int
+):
+    rows = [0 for _ in range(edge_size)]
+    cols = [0 for _ in range(edge_size)]
+    southeast_diagonal_sum = 0
+    northeast_diagonal_sum = 0
+    for row in range(edge_size):
+        for col in range(edge_size):
+            value = genome[row * edge_size + col]
+            rows[row] += value
+            cols[col] += value
+        southeast_diagonal_sum += genome[row * edge_size + row]
+        northeast_diagonal_sum += genome[row * edge_size + (edge_size - 1 - row)]
+    return rows, cols, [northeast_diagonal_sum, southeast_diagonal_sum]
+
+
+def get_fitness_for_magic_squares(
+    genome: list,
+    edge_size: int,
+    expected_sum: int
+):
+    rows, cols, diags = get_sums_for_magic_squares(
+        genome=genome,
+        edge_size=edge_size
+    )
+    sum_of_diff = sum(int(abs(s - expected_sum)) for s in rows + cols + diags if s != expected_sum)
+    return FitnessForMagicSquares(sum_of_diff=sum_of_diff)
+
+
+def printing_for_magic_squares(
+    current_generation: Chromosome,
+    start_time: datetime,
+    edge_size: int
+) -> None:
+    time_diff = datetime.now() - start_time
+
+    rows, cols, diags = get_sums_for_magic_squares(
+        genome=current_generation.genome,
+        edge_size=edge_size
+    )
+
+    for row_index in range(edge_size):
+        row = current_generation.genome[row_index * edge_size:(row_index + 1) * edge_size]
+        print('\t ', row, '=', rows[row_index])
+    print(diags[0], '\t', cols, '\t', diags[1])
+    print(f'Fitness: {current_generation.fitness}. Time: {time_diff}.')
+
+
+class GeneticMachineryForMagicSquares(GeneticMachinery):
+
+    # it is possible not override parent _generate_parent, but then in FitnessForMagicSquares add duplicate_count
+    # (like in FitnessForCardProblem)
+    def _generate_parent(
+        self
+    ) -> Chromosome:
+        genome = random.sample(self.available_genes_set, len(self.available_genes_set))
+        fitness = self.get_fitness(genome)
+        return Chromosome(genome=genome, fitness=fitness)
+
+    def _mutate(
+        self,
+        parent: Chromosome
+    ) -> Chromosome:
+        child_genome = parent.genome[:]
+        index_a, index_b = random.sample(range(self.genome_length), 2)
+        child_genome[index_a], child_genome[index_b] = child_genome[index_b], child_genome[index_a]
+        fitness = self.get_fitness(child_genome)
+        return Chromosome(genome=child_genome, fitness=fitness)
+
+
+def main_for_magic_squares(
+    edge_size=3
+):
+    cells_count = edge_size**2
+    geneset = [i for i in range(1, cells_count + 1)]
+    expected_sum = edge_size * (cells_count + 1) / 2
+
+    magic_squares_genetic_machinery = GeneticMachineryForMagicSquares(
+        available_genes_set=geneset,
+        get_fitness=lambda genome: get_fitness_for_magic_squares(
+            genome=genome,
+            edge_size=edge_size,
+            expected_sum=expected_sum
+        ),
+        genome_length=cells_count,
+        optimal_fitness=FitnessForMagicSquares(0),
+        printing=lambda current_generation, start_time: printing_for_magic_squares(
+            current_generation=current_generation,
+            start_time=start_time,
+            edge_size=edge_size
+        )
+    )
+    print(magic_squares_genetic_machinery.get_the_best())
 
 
 if __name__ == '__main__':
@@ -697,4 +817,5 @@ if __name__ == '__main__':
     # main_for_queens_puzzle()
     # main_for_graph_coloring_problem()
     # main_for_card_problem()
-    main_for_knights_problem()
+    # main_for_knights_problem()
+    main_for_magic_squares(edge_size=3)
