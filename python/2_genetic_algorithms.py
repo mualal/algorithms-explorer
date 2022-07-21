@@ -4,6 +4,8 @@ import csv
 import os
 from pathlib import Path
 import numpy as np
+from bisect import bisect_left
+from math import exp
 
 
 # 1 - random string to target string
@@ -101,6 +103,7 @@ def main_for_convergence_to_phrase(
 class Chromosome:
     genome = None
     fitness = None
+    age = 0
 
     def __init__(
         self,
@@ -155,17 +158,40 @@ class GeneticMachinery:
 
     def get_the_best(
         self,
+        genetic_line_max_age = None
     ) -> Chromosome:
         random.seed(42)
         start_time = datetime.now()
         best_parent = self._generate_parent()
-
+        historical_fitnesses = [best_parent.fitness]
         while True:
             child = self._mutate(best_parent)
             if best_parent.fitness > child.fitness:
+                if genetic_line_max_age is None:
+                    continue
+                best_parent.age += 1
+                if genetic_line_max_age > best_parent.age:
+                    continue
+                # if genetic line maximum age is reached
+                child_fitness_index = bisect_left(historical_fitnesses, child.fitness)
+                best_and_child_diff = len(historical_fitnesses) - child_fitness_index
+                similar_prop = best_and_child_diff / len(historical_fitnesses)
+                # new best parent selection based on child with very differ (relative to current genetic line) fitness
+                if random.random() < exp(-similar_prop):
+                    best_parent = child
+                    continue
+                best_parent.age = 0
+                continue
+            if not child.fitness > best_parent.fitness:
+                child.age = best_parent.age + 1
+                best_parent = child
                 continue
             self.printing(current_generation=child, start_time=start_time)
             best_parent = child
+            best_parent.age = 0
+            if child.fitness > best_parent.fitness:
+                best_parent = child
+                historical_fitnesses.append(child.fitness)
             if not self.optimal_fitness > child.fitness:
                 return best_parent
 
@@ -787,7 +813,8 @@ class GeneticMachineryForMagicSquares(GeneticMachinery):
 
 
 def main_for_magic_squares(
-    edge_size=3
+    edge_size=3,
+    genetic_line_max_age=50
 ):
     cells_count = edge_size**2
     geneset = [i for i in range(1, cells_count + 1)]
@@ -808,7 +835,7 @@ def main_for_magic_squares(
             edge_size=edge_size
         )
     )
-    print(magic_squares_genetic_machinery.get_the_best())
+    print(magic_squares_genetic_machinery.get_the_best(genetic_line_max_age=genetic_line_max_age))
 
 
 if __name__ == '__main__':
@@ -818,4 +845,4 @@ if __name__ == '__main__':
     # main_for_graph_coloring_problem()
     # main_for_card_problem()
     # main_for_knights_problem()
-    main_for_magic_squares(edge_size=3)
+    main_for_magic_squares(edge_size=5, genetic_line_max_age=350)
