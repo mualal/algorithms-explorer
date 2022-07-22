@@ -158,7 +158,7 @@ class GeneticMachinery:
 
     def get_the_best(
         self,
-        genetic_line_max_age = None
+        genetic_line_max_age=None
     ) -> Chromosome:
         random.seed(42)
         start_time = datetime.now()
@@ -700,8 +700,8 @@ class GeneticMachineryForKnightsProblem(GeneticMachinery):
 
 
 def main_for_knights_problem(
-    board_width = 10,
-    board_height = 10
+    board_width=10,
+    board_height=10
 ):
     knights_problem_genetic_machinery = GeneticMachineryForKnightsProblem(
         available_genes_set=None,
@@ -836,6 +836,90 @@ def main_for_magic_squares(
         )
     )
     print(magic_squares_genetic_machinery.get_the_best(genetic_line_max_age=genetic_line_max_age))
+
+
+# 8 - knapsack problem
+
+
+class ItemForKnapsack:
+    name = None
+    value = None
+    weight = None
+    volume = None
+
+    def __init__(
+        self,
+        name,
+        value,
+        weight,
+        volume
+    ) -> None:
+        self.name = name
+        self.value = value
+        self.weight = weight
+        self.volume = volume
+
+
+class ItemQuantityForKnapsack:
+    item = None
+    quantity = None
+
+    def __init__(
+        self,
+        item: ItemForKnapsack,
+        quantity
+    ) -> None:
+        self.item = item
+        self.quantity = quantity
+
+    def __eq__(
+        self,
+        other
+    ) -> bool:
+        return self.item == other.item and self.quantity == other.quantity
+
+
+class FitnessForKnapsackProblem:
+    total_weight = None
+    total_volume = None
+    total_value = None
+
+    def __init__(
+        self,
+        total_weight,
+        total_volume,
+        total_value
+    ) -> None:
+        self.total_weight = total_weight
+        self.total_volume = total_volume
+        self.total_value = total_value
+
+    def __gt__(
+        self,
+        other
+    ) -> bool:
+        return self.total_value > other.total_value
+    
+    def __str__(self):
+        return f'(weight: {self.total_weight}, volume: {self.total_volume}, value: {self.total_value})'
+
+
+def get_fitness_for_knapsack_problem(
+    genome: list[ItemQuantityForKnapsack]
+):
+    total_weight = 0
+    total_volume = 0
+    total_value = 0
+    for gene in genome:
+        count = gene.quantity
+        total_weight += gene.item.weight * count
+        total_volume += gene.item.volume * count
+        total_value += gene.item.value * count
+    return FitnessForKnapsackProblem(
+        total_weight=total_weight,
+        total_volume=total_volume,
+        total_value=total_value
+    )
 
 
 if __name__ == '__main__':
